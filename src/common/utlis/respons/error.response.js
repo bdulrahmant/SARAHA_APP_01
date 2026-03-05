@@ -31,6 +31,14 @@ export const forbiddenException = ({
   return errorException({ message, status: 403, extra });
 };
 
+
+export const BadRequestException = ({
+  message = "bad request",
+  extra = undefined,
+} = {}) => {
+  return errorException({ message, status: 400, extra });
+};
+
 // fixed error structer
 export const globalErrorHandling = (error, req, res, next) => {
   const status = error.cause?.status ?? 500;
@@ -45,5 +53,6 @@ export const globalErrorHandling = (error, req, res, next) => {
         ? defaultErrorMessage
         : displayErrorMessage
       : displayErrorMessage,
+      extra:error?.cause?.extra||undefined,
   });
 };

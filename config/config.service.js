@@ -21,5 +21,14 @@ export const DB_URI = process.env.DB_URI
 export const SALT_ROUND = parseInt(process.env.SALT_ROUND ?? '10')
 export const IV_LENGTH = parseInt(process.env.IV_LENGTH ?? '16')
 export const ENC_SECRET_KEY = Buffer.from(process.env.ENC_SECRET_KEY) 
-export const ACCESS_TOKEN_SECRET_KEY =process.env. ACCESS_TOKEN_SECRET_KEY
-// console.log({SALT_ROUND});
+
+export const USER_ACCESS_TOKEN_SECRET_KEY =process.env.USER_ACCESS_TOKEN_SECRET_KEY
+export const USER_REFRESH_TOKEN_SECRET_KEY =process.env.USER_REFRESH_TOKEN_SECRET_KEY
+
+export const SYSTEM_ACCESS_TOKEN_SECRET_KEY =process.env.SYSTEM_ACCESS_TOKEN_SECRET_KEY
+export const SYSTEM_REFRESH_TOKEN_SECRET_KEY =process.env.SYSTEM_REFRESH_TOKEN_SECRET_KEY
+
+export const ACCESS_TOKEN_EXPIRES_IN =parseInt(process.env.ACCESS_TOKEN_EXPIRES_IN)
+
+export const REFRESH_TOKEN_EXPIRES_IN =parseInt( process.env.REFRESH_TOKEN_EXPIRES_IN)
+
