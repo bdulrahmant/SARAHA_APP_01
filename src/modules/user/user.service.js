@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { findOne } from "../../DB/database.repository.js";
 import { UserModel } from "../../DB/index.js";
 import { USER_ACCESS_TOKEN_SECRET_KEY, USER_REFRESH_TOKEN_SECRET_KEY } from "../../../config/config.service.js";
-import { createLoginCredentials, decodeToken, notFoundException } from "../../common/utlis/index.js";
+import { createLoginCredentials, decodeToken, generateDecryption, notFoundException } from "../../common/utlis/index.js";
 import { TokentypeEnum } from "../../common/utlis/enums/security.enum.js";
 
 export const profile = async (authorization) => {
@@ -14,6 +14,18 @@ export const profile = async (authorization) => {
   return account;
 };
 
+
+export const shareProfile = async (userId) => {
+  const account = await findOne({model:UserModel , filter:{_id:userId}, select:"-password"});
+  if (!account) {
+    throw notFoundException({message:"invalid shared account"})
+  }
+  if (account.phone) {
+    account.phone =await generateDecryption(account.phone)
+  }
+  return account
+
+}
 
 
 export const rotateToken = async (authorization ,issuer) => {

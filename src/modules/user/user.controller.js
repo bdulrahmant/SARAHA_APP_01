@@ -1,9 +1,11 @@
 import { Router } from "express";
 import multer from "multer";
-import { profile ,rotateToken, uploadProfilePicture } from "./user.service.js";
+import { profile ,rotateToken, shareProfile, uploadProfilePicture } from "./user.service.js";
 import { successResponse } from "../../common/utlis/respons/success.respons.js";
 import { authentictaion, authorization } from "../../middleware/authentication.middleware.js";
 import { endPoint } from "./user.authorization.js";
+import * as validators from "./user.validation.js"
+import { validation } from "../../middleware/validation.middleware.js";
 const router = Router();
 
 const upload = multer({ dest: "uploads" });
@@ -16,6 +18,17 @@ router.get("/",
 
   return successResponse({ res, data: { account } });
 });
+
+
+router.get("/:userId/share-profile", 
+  validation(validators.shareProfile),
+  async (req, res, next) => {
+  const account = await shareProfile(req.params.userId);
+
+  return successResponse({ res, data: { account } });
+});
+
+
 
 router.get('/rotate-token', async (req , res , next) => {
   const credential =  await rotateToken(req.headers.authorization , `${req.protocol}://${req.host}`)
