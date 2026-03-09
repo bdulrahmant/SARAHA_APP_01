@@ -9,3 +9,9 @@ export const TokentypeEnum = {
   Refresh: "refresh"
 };
 
+
+export const logoutEnum = {
+  All: 0,
+  Only: 1
+};
+

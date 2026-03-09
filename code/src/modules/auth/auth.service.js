@@ -205,7 +205,6 @@ export const signup = async (inputs) => {
     `,
   });
 
-  console.log("OTP:", otp);
 
   return {
     message: "User created successfully. OTP sent to email",

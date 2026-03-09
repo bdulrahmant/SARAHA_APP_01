@@ -25,14 +25,16 @@ export const authentictaion = (tokenType = TokentypeEnum.Access) => {
         const [email, password] =
           Buffer.from(credentaials, "base64").toString()?.split(":") || [];
         await login({ email, password }, `${req.protocol}://${req.host}`);
-        console.log({ email, password });
 
         break;
       case "Bearer":
         req.user = await decodeToken(credentaials, tokenType);
         break;
       default:
-        throw conflictException({ message: "missing authentication schema" });
+        const {user , decoed} = await decodeToken({token:credential , tokenType})
+        req.user = user;
+        req.decoed = decoed
+        // throw conflictException({ message: "missing authentication schema" });
         break;
     }
 

@@ -7,11 +7,12 @@ import {
   USER_ACCESS_TOKEN_SECRET_KEY,
   USER_REFRESH_TOKEN_SECRET_KEY,
 } from "../../../../config/config.service.js";
-import { UserModel, findOne } from "../../../DB/index.js";
+import { UserModel, findOne, tokenModel } from "../../../DB/index.js";
 import { TokentypeEnum } from "../enums/security.enum.js";
 import { conflictException } from "../respons/error.response.js";
 import { roleEnum } from "../enums/user.enum.js";
 import {  notFoundException } from "../respons/error.response.js";
+import { randomUUID } from "crypto";
 
 export const generateToken = async ({
   payload = {},
@@ -30,19 +31,6 @@ export const verifyToken = async ({
 };
 
 
-// export const detectSignturesLevel = async (level) => {
-//   let signtures = {accessSignture:undefined , refreshSignture:undefined}
-//   switch (tokenType) {
-//     case roleEnum.Admin :
-//       signtures = {accessSignture:SYSTEM_ACCESS_TOKEN_SECRET_KEY ,refreshSignture:SYSTEM_REFRESH_TOKEN_SECRET_KEY }
-//       break;
-  
-//     default:
-//       signtures = {accessSignture:USER_ACCESS_TOKEN_SECRET_KEY ,refreshSignture:USER_REFRESH_TOKEN_SECRET_KEY }
-//       break;
-//   }
-//   return signtures
-// }
 
 export const detectSignturesLevel = async (level) => {
   let signtures = { accessSignture: undefined, refreshSignture: undefined };
@@ -85,36 +73,6 @@ export const getTokenSignture = async ({tokenType =TokentypeEnum.Access ,level})
 
 
 
-// export const decodeToken = async (token , tokenType =TokentypeEnum.Access) => {
-//   const decodeToken = jwt.decode(token);
-//   console.log(decodeToken);
-
-//   if (!decodeToken.aud?.length) {
-//     throw BadRequestException({message:'Missing token audience'})
-
-//   }
-//   const[tokenApproach ,level]=decodeToken.aud || [];
-//   console.log(tokenApproach);
-
-
-//   if (tokenType !== tokenApproach) {
-//     throw conflictException({message: `unexpected Token mechanism we expected ${tokenType} while you have used ${tokenApproach}`})
-//   }
-//   const secret =await getTokenSignture({tokenType:tokenApproach , level})
-  
-//   const verfiedData = jwt.verify(token, secret);
-//   console.log({ verfiedData });
-//   const user = await findOne({
-//     model: UserModel,
-//     filter: { _id: verfiedData.sub },
-//   });
-
-//   if (!user) {
-//     throw notFoundException({ message: "Not register account" });
-//   }
-
-//   return user
-// };
 
 export const decodeToken = async (token, tokenType = TokentypeEnum.Access) => {
 
@@ -135,7 +93,9 @@ export const decodeToken = async (token, tokenType = TokentypeEnum.Access) => {
       message: `unexpected Token mechanism we expected ${tokenType} while you have used ${tokenApproach}`
     });
   }
-
+  if (decoded.jti && await findOne({model:tokenModel , filter:{jti:decoded.jti}})) {
+    throw notFoundException({message:"invalid login session"}) 
+  }
   const secret = await getTokenSignture({
     tokenType: tokenApproach,
     level
@@ -152,23 +112,19 @@ export const decodeToken = async (token, tokenType = TokentypeEnum.Access) => {
     throw notFoundException({ message: "Not register account" });
   }
 
-  return user;
+  if (user.changeCredentialTime && user.changeCredentialTime?.getTime() >= decoded.iat*1000 ) {
+   throw notFoundException({message:"invalid login session"}) 
+  }
+  
+
+  return {user,decoded};
 };
 
 
 export const createLoginCredentials = async (user, issuer) => {
   const {accessSignture , refreshSignture} = await detectSignturesLevel(user.role)
-  // const access_token = await generateToken({
-  //   options: {
-  //     subject: user._id.toString(),
-  //     secret:accessSignture,
-  //     issuer,
-  //     audience: [TokentypeEnum.Access , user.role],
-  //     // noTimestamp:true,
-  //     // notBefore:60,
-  //     expiresIn: ACCESS_TOKEN_EXPIRES_IN,
-  //   },
-  // });
+
+  const jwtId = randomUUID()
 
   const access_token = await generateToken({
   secret: accessSignture,
@@ -177,6 +133,7 @@ export const createLoginCredentials = async (user, issuer) => {
     issuer,
     audience: [TokentypeEnum.Access, user.role],
     expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+    jwtId
   },
 });
 
@@ -189,6 +146,7 @@ export const createLoginCredentials = async (user, issuer) => {
       // noTimestamp:true,
       // notBefore:60,
       expiresIn: REFRESH_TOKEN_EXPIRES_IN,
+      jwtId
     },
   });
 

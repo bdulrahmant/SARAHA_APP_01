@@ -84,6 +84,8 @@ password: {
 
     profilePicture: String,
     coverPictures: [String],
+
+    
   },
   {
     collection: "Route_Users",
