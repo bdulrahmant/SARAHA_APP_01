@@ -3,8 +3,17 @@ import { tokenModel, UserModel } from "../../DB/index.js";
 import { conflictException, createLoginCredentials, decodeToken, generateDecryption, notFoundException } from "../../common/utlis/index.js";
 import { logoutEnum, TokentypeEnum } from "../../common/utlis/enums/security.enum.js";
 import { ACCESS_TOKEN_EXPIRES_IN, REFRESH_TOKEN_EXPIRES_IN } from "../../../config/config.service.js";
+import { baseRevokeTokenKey, deleteKey, keys, revokeTokenKey, set } from "../../common/services/redis.service.js";
 
 
+const createRvokeToken = async ({userId , jti , ttl}) => {
+        await set({
+        key:revokeTokenKey({userId: sub , jti}),
+        value:jti,
+        ttl
+      })
+      return;
+}
 
 
 export const logout = async ({ flag }, user , {jti , iat}) => {
@@ -14,18 +23,23 @@ export const logout = async ({ flag }, user , {jti , iat}) => {
         user.changeCredentialTime= new Date()
         await user.save()
 
-        await deleteMany({tokenModel , filter:{userId:user._id}})
+        await deleteKey(await keys(baseRevokeTokenKey(sub)))
 
       break;
   
     default:
-      await createOne({
-        model:tokenModel,
-        Data:{
-          userId:user._id,
-          jti,
-          expiresIn:new Date((iat + REFRESH_TOKEN_EXPIRES_IN)*1000)
-        }
+      // await createOne({
+      //   model:tokenModel,
+      //   Data:{
+      //     userId:user._id,
+      //     jti,
+      //     expiresIn:new Date((iat + REFRESH_TOKEN_EXPIRES_IN)*1000)
+      //   }
+      // })
+      await createRvokeToken({
+        userId:sub,
+        jti,
+        ttl: iat + REFRESH_TOKEN_EXPIRES_IN
       })
       status=201
       break;
@@ -77,18 +91,15 @@ export const shareProfile = async (userId) => {
 }
 
 
-export const rotateToken = async (user , {jti , iat} ,issuer) => {
+export const rotateToken = async (user , {sub,jti , iat} ,issuer) => {
 
       if ((iat+ACCESS_TOKEN_EXPIRES_IN) * 1000 > Date.now()+(30000)) {
         throw conflictException({message:"Current access tokin still valid"})
       }
-      await createOne({
-        model:tokenModel,
-        Data:{
-          userId:user._id,
-          jti,
-          expiresIn:new Date((iat + REFRESH_TOKEN_EXPIRES_IN)*1000)
-        }
+      await createRvokeToken({
+        userId:sub,
+        jti,
+        ttl: iat + REFRESH_TOKEN_EXPIRES_IN
       })
 return await createLoginCredentials(user, issuer)
 };

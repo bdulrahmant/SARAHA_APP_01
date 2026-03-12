@@ -13,6 +13,7 @@ import { conflictException } from "../respons/error.response.js";
 import { roleEnum } from "../enums/user.enum.js";
 import {  notFoundException } from "../respons/error.response.js";
 import { randomUUID } from "crypto";
+import { get, revokeTokenKey } from "../../services/index.js";
 
 export const generateToken = async ({
   payload = {},
@@ -93,7 +94,7 @@ export const decodeToken = async (token, tokenType = TokentypeEnum.Access) => {
       message: `unexpected Token mechanism we expected ${tokenType} while you have used ${tokenApproach}`
     });
   }
-  if (decoded.jti && await findOne({model:tokenModel , filter:{jti:decoded.jti}})) {
+  if (decoded.jti && await get(revokeTokenKey({userId:decoded.sub , jti:decoded.jti}))) {
     throw notFoundException({message:"invalid login session"}) 
   }
   const secret = await getTokenSignture({

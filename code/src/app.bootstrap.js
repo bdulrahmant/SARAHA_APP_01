@@ -1,10 +1,11 @@
 import { NODE_ENV, port } from "../config/config.service.js";
 import { globalErrorHandling } from "./common/utlis/index.js";
-import { connectDB } from "./DB/index.js";
+import { connectDB, connectRedis, redisClient } from "./DB/index.js";
 import { authRouter, userRouter } from "./modules/index.js";
 import express from "express";
 import cors from "cors";
 import { resolve } from "path";
+import { set } from "./common/services/redis.service.js";
 
 async function bootstrap() {
   const app = express();
@@ -16,6 +17,9 @@ async function bootstrap() {
 
   // DB
   await connectDB();
+  await connectRedis();
+
+  await set({key:"name" , value:"Taha" , ttl:50})
   //application routing
   app.get("/", (req, res) => res.send("Hello World!"));
   app.use("/auth", authRouter);
