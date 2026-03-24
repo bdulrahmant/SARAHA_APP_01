@@ -134,7 +134,7 @@ export const createLoginCredentials = async (user, issuer) => {
     issuer,
     audience: [TokentypeEnum.Access, user.role],
     expiresIn: ACCESS_TOKEN_EXPIRES_IN,
-    jwtId
+    jwtid: jwtId
   },
 });
 
@@ -147,7 +147,7 @@ export const createLoginCredentials = async (user, issuer) => {
       // noTimestamp:true,
       // notBefore:60,
       expiresIn: REFRESH_TOKEN_EXPIRES_IN,
-      jwtId
+      jwtid: jwtId
     },
   });
 

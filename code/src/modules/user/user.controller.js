@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { logout, profile ,profileCoverImages,profileImage,rotateToken, shareProfile, uploadProfilePicture } from "./user.service.js";
+import { logout, profile ,profileCoverImages,profileImage,rotateToken, shareProfile, updatePassword, uploadProfilePicture } from "./user.service.js";
 import { successResponse } from "../../common/utlis/respons/success.respons.js";
 import { authentictaion, authorization } from "../../middleware/authentication.middleware.js";
 import { endPoint } from "./user.authorization.js";
@@ -8,10 +8,13 @@ import * as validators from "./user.validation.js"
 import { validation } from "../../middleware/validation.middleware.js";
 import { localFileUpload } from "../../common/utlis/multer/local.multer.js";
 import { fileFieldValidation } from "../../common/utlis/multer/index.js";
+import { messageRouter } from "../messages/index.js";
 const router = Router();
 
 const upload = multer({ dest: "uploads" });
 
+
+router.use("/:recieverId/message" , messageRouter)
 
 router.post("/logout" , authentictaion(), async (req , res , next) => {
   
@@ -60,6 +63,23 @@ router.patch(
 
 
 
+router.patch(
+  "/update-password",
+  authentictaion(),
+  validation(validators.updatePassword),
+  async (req, res, next) => {
+
+    const credentials = await updatePassword(req.body , req.user, `${req.protocol}://${req.host}`)
+
+    return successResponse({
+      res,
+      data: { ...credentials }
+    });
+
+  }
+);
+
+
 router.get("/", 
   authentictaion(),
   authorization(endPoint.profile),
@@ -80,7 +100,7 @@ router.get("/:userId/share-profile",
 
 
 
-router.get('/rotate-token', async (req , res , next) => {
+router.get('/rotate-token', authentictaion("refresh"), async (req , res , next) => {
   const credential =  await rotateToken(req.user , req.decoded , `${req.protocol}://${req.host}`)
     return successResponse({ res, status:201 , data: { ...credential } });
 

@@ -40,3 +40,12 @@ export const profileAttachment = {
     ).min(1).max(5).required()
 }).required()
 }
+
+
+export const updatePassword = {
+        body:joi.object().keys({
+            oldPassword:generalValidationFields.password.required(),
+            password:generalValidationFields.password.not(joi.ref('oldPassword')).required(),
+            confirmPassword:generalValidationFields.confirmPassword('password').required(),
+        }).required()
+}

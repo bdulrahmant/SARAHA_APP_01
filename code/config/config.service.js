@@ -37,3 +37,18 @@ export const ACCESS_TOKEN_EXPIRES_IN =parseInt(process.env.ACCESS_TOKEN_EXPIRES_
 export const REFRESH_TOKEN_EXPIRES_IN =parseInt( process.env.REFRESH_TOKEN_EXPIRES_IN ?? "1800")
 
 export const REDIS_URI = process.env.REDIS_URI
+
+
+export const EMAIL_USER = process.env.EMAIL_USER
+export const EMAIL_PASS = process.env.EMAIL_PASS
+
+export const APPLICATION_NAME = process.env.APPLICATION_NAME
+
+
+export const FACEBOOK_LINK = process.env.FACEBOOK_LINK
+export const INSTEGRAM_LINK = process.env.INSTEGRAM_LINK
+export const TWITTER_LINK = process.env.TWITTER_LINK
+
+
+export const ORIGINS = process.env.ORIGINS?.split(",") || []
+

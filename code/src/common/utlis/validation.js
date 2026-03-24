@@ -10,6 +10,7 @@ export const generalValidationFields = {
       maxDomainSegments: 3,
       tlds: { allow: ["com", "net"] },
     }),
+  otp: joi.string().pattern(new RegExp(/^\d{6}/)),
 
 
   password: joi
@@ -37,6 +38,7 @@ export const generalValidationFields = {
   confirmPassword: function (path="password") {
     return joi.string().valid(joi.ref(path))
   },
+  flag:joi.boolean().truthy("true" , "1").falsy("false" , "0"),
 
   id:joi.string().custom((value, helper)=>{
             console.log({value,helper});
@@ -46,7 +48,7 @@ export const generalValidationFields = {
 
   file:function (validation =[]) {
     return  joi.object().keys({
-                       "fieldname": joi.string().required(),
+            "fieldname": joi.string().required(),
             "originalname": joi.string().required(),
             "encoding": joi.string().required(),
             "mimetype": joi.string().valid(...Object.values(validation)).required(),

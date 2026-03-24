@@ -1,6 +1,6 @@
 import { createOne, deleteMany, findOne } from "../../DB/database.repository.js";
 import { tokenModel, UserModel } from "../../DB/index.js";
-import { conflictException, createLoginCredentials, decodeToken, generateDecryption, notFoundException } from "../../common/utlis/index.js";
+import { compareHash, conflictException, createLoginCredentials, decodeToken, generateDecryption, generateEncryption, generateHash, notFoundException } from "../../common/utlis/index.js";
 import { logoutEnum, TokentypeEnum } from "../../common/utlis/enums/security.enum.js";
 import { ACCESS_TOKEN_EXPIRES_IN, REFRESH_TOKEN_EXPIRES_IN } from "../../../config/config.service.js";
 import { baseRevokeTokenKey, deleteKey, keys, revokeTokenKey, set } from "../../common/services/redis.service.js";
@@ -8,7 +8,7 @@ import { baseRevokeTokenKey, deleteKey, keys, revokeTokenKey, set } from "../../
 
 const createRvokeToken = async ({userId , jti , ttl}) => {
         await set({
-        key:revokeTokenKey({userId: sub , jti}),
+        key:revokeTokenKey({userId , jti}),
         value:jti,
         ttl
       })
@@ -23,7 +23,7 @@ export const logout = async ({ flag }, user , {jti , iat}) => {
         user.changeCredentialTime= new Date()
         await user.save()
 
-        await deleteKey(await keys(baseRevokeTokenKey(sub)))
+        await deleteKey(await keys(baseRevokeTokenKey(user._id)))
 
       break;
   
@@ -37,7 +37,7 @@ export const logout = async ({ flag }, user , {jti , iat}) => {
       //   }
       // })
       await createRvokeToken({
-        userId:sub,
+        userId:user._id,
         jti,
         ttl: iat + REFRESH_TOKEN_EXPIRES_IN
       })
@@ -116,4 +116,26 @@ export const uploadProfilePicture = async (userId, file) => {
   const account = await UserModel.findById(userId);
 
   return account;
+};
+
+
+export const updatePassword = async ({ oldPassword , password }, user , issuer) => {
+  console.log({ oldPassword, userPassword: user?.password });
+  if (!await compareHash({ plaintext:oldPassword , ciphertext:user.password })) {
+    throw conflictException({message:'invalid old password'})
+  }
+  for (const hash of user.oldPassword || []) {
+     if (await compareHash({ plaintext:password , ciphertext:hash })) {
+    throw conflictException({message:'this password is already used before'})
+  }
+  }
+
+  user.oldPassword.push(user.password)
+  user.password = await generateHash(password)
+  user.changeCredentialTime = new Date();
+  await user.save()
+
+  await deleteKey(await keys(baseRevokeTokenKey(user._id)))
+  return await createLoginCredentials(user , issuer);
+
 };

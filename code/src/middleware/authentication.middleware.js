@@ -28,12 +28,14 @@ export const authentictaion = (tokenType = TokentypeEnum.Access) => {
 
         break;
       case "Bearer":
-        req.user = await decodeToken(credentaials, tokenType);
+        const bearerResult = await decodeToken(credentaials, tokenType);
+        req.user = bearerResult.user;
+        req.decoded = bearerResult.decoded;
         break;
       default:
-        const {user , decoed} = await decodeToken({token:credential , tokenType})
+        const {user , decoded} = await decodeToken(credentaials , tokenType)
         req.user = user;
-        req.decoed = decoed
+        req.decoded = decoded;
         // throw conflictException({ message: "missing authentication schema" });
         break;
     }

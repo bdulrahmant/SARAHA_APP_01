@@ -48,6 +48,7 @@ password: {
     confirmEmail: {
       type: Date,
     },
+    oldPassword:[String],
     changeCredentialTime: {
       type: Date,
     },

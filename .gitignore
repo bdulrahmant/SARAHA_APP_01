@@ -1,10 +1,3 @@
-/config/.env.development
-/config/.env.production
-node_modules
-
-
-
-
 # dependencies
 node_modules/
 code/node_modules/
@@ -15,6 +8,10 @@ code/node_modules/
 config/.env.development
 config/.env.production
 
+# uploads and temp files
+uploads/
+temp/
+
 # logs
 logs
 *.log
@@ -22,24 +19,17 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# runtime files
-temp/
-uploads/
-
-# OS files
+# system files
 .DS_Store
 Thumbs.db
 
-# IDE files
+# IDE
 .vscode/
 .idea/
 
 # build
 dist/
 build/
-
-# optional npm cache
-.npm
 
 # coverage
 coverage/

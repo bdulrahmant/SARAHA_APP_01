@@ -1,8 +1,21 @@
 import { redisClient } from "../../DB/index.js"
+import { emailEnum } from "../utlis/enums/email.enum.js"
+
+export const otpKey = ({email , subject=emailEnum.ConfirmEmail}) => {
+    return `OTP::User::${email}::${subject}`
+}
+
+export const MaxAttemptOtpKey = ({email , subject=emailEnum.ConfirmEmail}) => {
+    return `${otpKey({email , subject})}::MaxTrial`
+}
+
+export const blockOtpKey = ({email , subject=emailEnum.ConfirmEmail}) => {
+    return `${otpKey({email , subject})}::block`
+}
 
 
 export const baseRevokeTokenKey = (userId) => {
-    return `RevokeToken::${userId}`
+    return `RevokeToken::${userId.toString()}`
 }
 
 export const revokeTokenKey = (userId , jti) => {
@@ -80,6 +93,15 @@ export const exists = async (key) => {
     }
 }
 
+export const incr = async (key) => {
+    try {
+             return await redisClient.incr(key)
+
+    } catch (error) {
+        console.log(`Fail in redis incr operation ${error}`);
+        
+    }
+}
 
 export const expire = async ({key , ttl }={}) => {
     try {
