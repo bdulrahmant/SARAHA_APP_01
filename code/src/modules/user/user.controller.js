@@ -1,8 +1,9 @@
 import { Router } from "express";
 import multer from "multer";
-import { logout, profile ,profileCoverImages,profileImage,rotateToken, shareProfile, updatePassword, uploadProfilePicture } from "./user.service.js";
+import { logout, profile ,profileCoverImages,profileImage,rotateToken, shareProfile, updatePassword, uploadProfilePicture, removeProfilePicture, getProfileViewCount } from "./user.service.js";
 import { successResponse } from "../../common/utlis/respons/success.respons.js";
 import { authentictaion, authorization } from "../../middleware/authentication.middleware.js";
+import { roleEnum } from "../../common/utlis/enums/user.enum.js";
 import { endPoint } from "./user.authorization.js";
 import * as validators from "./user.validation.js"
 import { validation } from "../../middleware/validation.middleware.js";
@@ -117,6 +118,16 @@ router.post(
     return successResponse({ res, data: { account } });
   },
 );
+
+router.delete("/remove-profile-picture", authentictaion(), async (req, res, next) => {
+  const account = await removeProfilePicture(req.user);
+  return successResponse({ res, data: { account } });
+});
+
+router.get("/:userId/view-count", authentictaion(), authorization([roleEnum.Admin]), async (req, res, next) => {
+  const data = await getProfileViewCount(req.params.userId);
+  return successResponse({ res, data });
+});
 
 
 

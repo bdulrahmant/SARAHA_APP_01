@@ -1,6 +1,8 @@
 import { createOne, deleteMany, findOne } from "../../DB/database.repository.js";
 import { tokenModel, UserModel } from "../../DB/index.js";
-import { compareHash, conflictException, createLoginCredentials, decodeToken, generateDecryption, generateEncryption, generateHash, notFoundException } from "../../common/utlis/index.js";
+import { compareHash, conflictException, createLoginCredentials, decodeToken, generateDecryption, generateEncryption, generateHash, notFoundException, BadRequestException } from "../../common/utlis/index.js";
+import fs from 'fs';
+import path from 'path';
 import { logoutEnum, TokentypeEnum } from "../../common/utlis/enums/security.enum.js";
 import { ACCESS_TOKEN_EXPIRES_IN, REFRESH_TOKEN_EXPIRES_IN } from "../../../config/config.service.js";
 import { baseRevokeTokenKey, deleteKey, keys, revokeTokenKey, set } from "../../common/services/redis.service.js";
@@ -50,7 +52,10 @@ export const logout = async ({ flag }, user , {jti , iat}) => {
 
 
 export const profileImage = async (files  , user) => {
-
+  if (user.profilePicture && files?.finalPath) {
+    user.profilePictureGallery = user.profilePictureGallery || [];
+    user.profilePictureGallery.push(user.profilePicture);
+  }
   user.profilePicture = files?.finalPath
   await user.save()
 
@@ -59,9 +64,13 @@ export const profileImage = async (files  , user) => {
 
 
 
-export const profileCoverImages = async (file , user) => {
-
-  user.coverPictures = file.finalPath
+export const profileCoverImages = async (files , user) => {
+  const existingCount = user.coverPictures ? user.coverPictures.length : 0;
+  const uploadedCount = files ? files.length : 0;
+  if (existingCount + uploadedCount !== 2) {
+    throw BadRequestException({ message: "Cover pictures must be exactly 2 (existing + uploaded)" });
+  }
+  user.coverPictures = [...(user.coverPictures || []), ...files.map(f => f.finalPath)];
   await user.save()
 
   return user;
@@ -79,6 +88,7 @@ export const profile = async (authorization) => {
 
 
 export const shareProfile = async (userId) => {
+  await UserModel.updateOne({_id: userId}, { $inc: { viewCount: 1 } });
   const account = await findOne({model:UserModel , filter:{_id:userId}, select:"-password"});
   if (!account) {
     throw notFoundException({message:"invalid shared account"})
@@ -106,16 +116,34 @@ return await createLoginCredentials(user, issuer)
 
 
 export const uploadProfilePicture = async (userId, file) => {
-  await UserModel.updateOne(
-    { _id: userId },
-    {
-      profilePicture: file?.filename,
-    },
-  );
+  const user = await UserModel.findById(userId);
+  if (user && user.profilePicture && file?.filename) {
+    user.profilePictureGallery = user.profilePictureGallery || [];
+    user.profilePictureGallery.push(user.profilePicture);
+  }
+  if (user) {
+    user.profilePicture = file?.filename;
+    await user.save();
+  }
+  return user;
+};
 
-  const account = await UserModel.findById(userId);
+export const removeProfilePicture = async (user) => {
+  if (user.profilePicture) {
+    const filePath = path.resolve(user.profilePicture);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    user.profilePicture = null;
+    await user.save();
+  }
+  return user;
+};
 
-  return account;
+export const getProfileViewCount = async (userId) => {
+  const account = await findOne({ model: UserModel, filter: { _id: userId } });
+  if (!account) throw notFoundException({ message: "Account not found" });
+  return { viewCount: account.viewCount || 0 };
 };
 
 

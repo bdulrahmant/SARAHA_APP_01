@@ -86,7 +86,20 @@ password: {
     profilePicture: String,
     coverPictures: [String],
 
-    
+    profilePictureGallery: [String],
+    viewCount: {
+      type: Number,
+      default: 0,
+    },
+    twoStepVerification: {
+      type: Boolean,
+      default: false,
+    },
+    unconfirmedExpiry: {
+      type: Date,
+      expires: '24h',
+      default: Date.now,
+    },
   },
   {
     collection: "Route_Users",

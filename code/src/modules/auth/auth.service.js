@@ -10,6 +10,8 @@ import {
   compareHash,
   BadRequestException,
   emailEvent,
+  generateToken,
+  verifyToken,
 } from "../../common/utlis/index.js";
 
 import { UserModel, createOne, findOne, updateOne } from "../../DB/index.js";
@@ -147,6 +149,7 @@ export const confirmEmail = async (inputs) => {
 
   account.isVerified = true;
   account.confirmEmail = new Date();
+  account.unconfirmedExpiry = undefined;
   await account.save();
 await deleteKey(await keys(otpKey({email , subject:emailEnum.ConfirmEmail}))) 
 return;
@@ -288,6 +291,10 @@ export const verifyOTP = async ({ email, otp }) => {
 export const login = async (inputs , issuer) => {
   const { email, password } = inputs;
 
+  const failedKey = `fail:${email}`;
+  const failed = await get(failedKey);
+  if (failed === "blocked") throw notFoundException({ message: "Account is blocked for 5 minutes due to too many failed login attempts." });
+
   const user = await UserModel.findOne({ email }).select("+password").lean();
 
   if (!user) {
@@ -301,14 +308,79 @@ export const login = async (inputs , issuer) => {
   const match = await compare(password, user.password);
 
   if (!match) {
-    throw notFoundException({ message: "invalid login credentials" });
+    const attempts = Number(failed || 0) + 1;
+    await set({ key: failedKey, value: attempts >= 5 ? "blocked" : attempts, ttl: 300 });
+    throw notFoundException({ message: attempts >= 5 ? "Blocked for 5m" : "invalid login credentials" });
   }
+  await deleteKey([failedKey]);
 
   if (user.phone) {
     user.phone = await generateDecryption(user.phone);
   }
 
+  if (user.twoStepVerification) {
+    await sendEmailOtp({email , subject: emailEnum.TwoStepsVerification , title:"2FA Code"});
+    return { message: "OTP sent. Please confirm 2FA.", twoStepVerification: true, email }; 
+  }
+
   return createLoginCredentials(user , issuer)
+};
+
+export const enable2FA = async (user) => {
+  await sendEmailOtp({email: user.email , subject: emailEnum.TwoStepsVerification , title:"Enable 2FA Code"});
+  return { message: "OTP sent to email to enable 2FA." };
+};
+
+export const confirm2FA = async (user, otp) => {
+  const hashOtp = await get(otpKey({email: user.email , subject: emailEnum.TwoStepsVerification}));
+  if (!hashOtp) throw notFoundException({ message: "Expired OTP" });
+  if (!await compareHash({ plaintext: otp, ciphertext: hashOtp })) throw conflictException({ message: "Invalid OTP" });
+  user.twoStepVerification = true;
+  await user.save();
+  await deleteKey(await keys(otpKey({email: user.email , subject: emailEnum.TwoStepsVerification})));
+  return { message: "2FA enabled successfully" };
+};
+
+export const confirmLogin2FA = async (inputs , issuer) => {
+  const { email, otp } = inputs;
+  const hashOtp = await get(otpKey({email , subject: emailEnum.TwoStepsVerification}));
+  if (!hashOtp) throw notFoundException({ message: "Expired OTP" });
+  if (!await compareHash({ plaintext: otp, ciphertext: hashOtp })) throw conflictException({ message: "Invalid OTP" });
+  const user = await UserModel.findOne({ email }).lean();
+  if (user.phone) {
+    user.phone = await generateDecryption(user.phone);
+  }
+  await deleteKey(await keys(otpKey({email , subject: emailEnum.TwoStepsVerification})));
+  return createLoginCredentials(user, issuer);
+};
+
+export const requestForgotPasswordLink = async ({ email }, protocolHost) => {
+  const account = await UserModel.findOne({ email, provider: providerEnum.System });
+  if (!account) throw notFoundException({ message: "Account not found" });
+  const token = await generateToken({ payload: { email }, secret: "RESET_LINK_SECRET", options: { expiresIn: '15m' } });
+  const link = `${protocolHost}/auth/reset-forgot-password-link?token=${token}`;
+  emailEvent.emit('sendEmail' , async () => {
+    await sendEmail({ to: email, subject: "Reset Password Link", html: `<a href='${link}'>Reset Password</a>` });
+  });
+  return { message: "Reset link sent" };
+};
+
+export const resetForgotPasswordLink = async ({ token, password }) => {
+  const decoded = await verifyToken({ token, secret: "RESET_LINK_SECRET" });
+  const email = decoded.email;
+  const isUsed = await get(`usedLink:${token}`);
+  if (isUsed) throw conflictException({ message: "Link already used" });
+  
+  const account = await UserModel.findOne({ email, provider: providerEnum.System });
+  if (!account) throw notFoundException({ message: "Account not found" });
+  
+  account.password = await generateHash(password);
+  account.changeCredentialTime = new Date();
+  await account.save();
+  await set({ key: `usedLink:${token}`, value: "used", ttl: 15 * 60 });
+  const tokenKeys = await keys(baseRevokeTokenKey(account._id));
+  if(tokenKeys && tokenKeys.length) await deleteKey(tokenKeys);
+  return { message: "Password reset successful" };
 };
 
 

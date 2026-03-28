@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { signup, login, verifyOTP, signupWithGmail, confirmEmail, resendConfirmEmail, requestForgotPasswordOtp, verifyForgotPasswordOtp, resetForgotPasswordOtp } from "./auth.service.js";
+import { signup, login, verifyOTP, signupWithGmail, confirmEmail, resendConfirmEmail, requestForgotPasswordOtp, verifyForgotPasswordOtp, resetForgotPasswordOtp, enable2FA, confirm2FA, confirmLogin2FA, requestForgotPasswordLink, resetForgotPasswordLink } from "./auth.service.js";
 import {
   BadRequestException,
   successResponse,
 } from "../../common/utlis/index.js";
+import { authentictaion } from "../../middleware/authentication.middleware.js";
 import * as validators from './auth.validation.js'
 import { validation } from "../../middleware/validation.middleware.js";
 import geoip from 'geoip-lite'
@@ -112,6 +113,31 @@ router.patch("/reset-forgot-password-code",
   await resetForgotPasswordOtp(req.body)
   return successResponse({ res });
 }); 
+
+router.patch("/enable-2fa", authentictaion(), async (req, res, next) => {
+  const result = await enable2FA(req.user);
+  return successResponse({ res, data: result });
+});
+
+router.patch("/confirm-2fa", authentictaion(), async (req, res, next) => {
+  const result = await confirm2FA(req.user, req.body.otp);
+  return successResponse({ res, data: result });
+});
+
+router.post("/login-confirm", async (req, res, next) => {
+  const credentials = await confirmLogin2FA(req.body, `${req.protocol}://${req.host}`);
+  return successResponse({ res, data: { ...credentials } });
+});
+
+router.post("/request-forgot-password-link", async (req, res, next) => {
+  const result = await requestForgotPasswordLink(req.body, `${req.protocol}://${req.host}`);
+  return successResponse({ res, data: result });
+});
+
+router.patch("/reset-forgot-password-link", async (req, res, next) => {
+  const result = await resetForgotPasswordLink(req.body);
+  return successResponse({ res, data: result });
+});
 
 
 
