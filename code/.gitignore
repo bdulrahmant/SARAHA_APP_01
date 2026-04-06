@@ -1,5 +1,5 @@
-/config/.env.development
-/config/.env.production
+# /config/.env.development
+# /config/.env.production
 node_modules
 
 
@@ -10,10 +10,10 @@ node_modules/
 code/node_modules/
 
 # environment variables
-.env
-.env.*
-config/.env.development
-config/.env.production
+# .env
+# .env.*
+# config/.env.development
+# config/.env.production
 
 # logs
 logs
@@ -26,20 +26,20 @@ yarn-error.log*
 temp/
 uploads/
 
-# OS files
-.DS_Store
-Thumbs.db
+# # OS files
+# .DS_Store
+# Thumbs.db
 
-# IDE files
-.vscode/
-.idea/
+# # IDE files
+# .vscode/
+# .idea/
 
-# build
-dist/
-build/
+# # build
+# dist/
+# build/
 
-# optional npm cache
-.npm
+# # optional npm cache
+# .npm
 
-# coverage
-coverage/
+# # coverage
+# coverage/

@@ -1,12 +1,12 @@
 # dependencies
 node_modules/
-code/node_modules/
+# code/node_modules/
 
 # environment variables
-.env
-.env.*
-config/.env.development
-config/.env.production
+# .env
+# .env.*
+# config/.env.development
+# config/.env.production
 
 # uploads and temp files
 uploads/
