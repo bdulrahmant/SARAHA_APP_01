@@ -52,3 +52,4 @@ export const TWITTER_LINK = process.env.TWITTER_LINK
 
 export const ORIGINS = process.env.ORIGINS?.split(",") || []
 
+// lol 
